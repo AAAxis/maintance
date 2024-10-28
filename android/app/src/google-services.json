@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "8110435803",
+    "project_id": "maintance-f744d",
+    "storage_bucket": "maintance-f744d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:8110435803:android:d69cf575d3c23c0c55cbfe",
+        "android_client_info": {
+          "package_name": "com.theholylabs.maintance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "8110435803-o7ngpad1pdj6dr69apcm8jh8a3tsgtei.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.theholylabs.maintance",
+            "certificate_hash": "6aac46e9a05490fa73bb1e35200b5b6e68ce462b"
+          }
+        },
+        {
+          "client_id": "8110435803-rlbpftcv92kot4upj025pleggvboqa7s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.theholylabs.maintance",
+            "certificate_hash": "aad95ae7be5e1564aeadb28f0202a7bcde0fff63"
+          }
+        },
+        {
+          "client_id": "8110435803-dfi481s9dfphc7e0jgt3a9mkgkhl6mna.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHcdIGufiTlCnNwtgAznO3j2hns-tLuZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "8110435803-dfi481s9dfphc7e0jgt3a9mkgkhl6mna.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "8110435803-cvnb99d36om5180tjnf0iv03fhh792be.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.theholylabs.maintance"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
