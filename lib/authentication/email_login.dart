@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/authentication/register_user.dart';
-import 'package:driver_app/mainScreens/navigation.dart'; // Update with your navigation screen// Update with your registration screen
+import 'package:driver_app/mainScreens/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
-final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Firestore instance
+final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
 class EmailLoginScreen extends StatefulWidget {
   const EmailLoginScreen({Key? key}) : super(key: key);
@@ -19,43 +21,40 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   String errorMessage = '';
 
-  // Method to handle user login with Firebase Authentication
   Future<void> signInWithEmail() async {
     setState(() {
-      errorMessage = ''; // Reset error message
+      errorMessage = '';
     });
 
     try {
-      // Attempt to sign in user with email and password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // Check if the user is successfully logged in
       if (userCredential.user != null) {
-        // Fetch additional user data if needed from Firestore
         DocumentSnapshot userData = await _firestore
             .collection('users')
             .doc(userCredential.user!.uid)
             .get();
 
         if (userData.exists) {
-          // Navigate to the main navigation screen after successful login
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('uid', userCredential.user!.uid);
+
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => NavigationScreen()), // Update with your actual navigation screen
+            MaterialPageRoute(builder: (context) => NavigationScreen()),
           );
         } else {
           setState(() {
-            errorMessage = "User data not found.";
+            errorMessage = tr("error_user_data_not_found");
           });
         }
       }
     } catch (e) {
-      // Display error message if login fails
       setState(() {
-        errorMessage = 'Login failed. Please check your email and password.';
+        errorMessage = tr("error_login_failed");
       });
     }
   }
@@ -71,7 +70,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Welcome Back!",
+                tr("welcome_back"),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -82,7 +81,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
-                  labelText: "Email",
+                  labelText: tr("email"),
                   prefixIcon: Icon(Icons.email),
                   border: OutlineInputBorder(),
                   filled: true,
@@ -93,7 +92,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
               TextField(
                 controller: passwordController,
                 decoration: InputDecoration(
-                  labelText: "Password",
+                  labelText: tr("password"),
                   prefixIcon: Icon(Icons.lock),
                   border: OutlineInputBorder(),
                   filled: true,
@@ -112,7 +111,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                   ),
                 ),
                 child: Text(
-                  "Sign In",
+                  tr("sign_in"),
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -125,20 +124,24 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                   ),
                 ),
               SizedBox(height: 20),
-              // Link to registration screen
               TextButton(
-                onPressed: () {
-                  // Navigate to the registration screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => UserRegistrationScreen()), // Update with your actual registration screen
-                  );
+                onPressed: () async {
+                  const url = 'https://maintance-f744d.web.app/index.html'; // Replace with your actual link
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  } else {
+                    // Handle the error if the URL can't be launched
+                    setState(() {
+                      errorMessage = tr("error_invalid_url");
+                    });
+                  }
                 },
                 child: Text(
-                  "Don't have an account? Register here",
+                  tr("no_account_join_us"),
                   style: TextStyle(color: Colors.blue),
                 ),
               ),
+
             ],
           ),
         ),

@@ -1,7 +1,8 @@
 
 import 'package:driver_app/authentication/email_login.dart';
-import 'package:driver_app/mainScreens/maps.dart';
-import 'package:driver_app/mainScreens/storage.dart';
+import 'package:driver_app/mainScreens/buildings.dart';
+import 'package:driver_app/mainScreens/tasks.dart';
+import 'package:driver_app/mainScreens/users.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +13,7 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = 1;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
@@ -35,8 +36,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          MapView(),
-          StorageBrokenItemsScreen(),
+          BuildingProgressScreen(),
+          TasksScreen(),
+          UsersScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -49,8 +51,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         items: [
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.business),
-            label: 'Buildings',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
 
 
@@ -59,6 +61,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.task_alt_outlined),
             label: 'My Tasks',
+          ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_outlined),
+            label: 'My Tenants',
           ),
 
 

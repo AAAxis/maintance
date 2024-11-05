@@ -1,10 +1,10 @@
-import 'package:driver_app/authentication/email_login.dart';
-import 'package:driver_app/authentication/hello.dart';
-import 'package:driver_app/authentication/register_user.dart';
-import 'package:driver_app/mainScreens/add_item.dart';
+import 'package:driver_app/authentication/phone_verification.dart';
+import 'package:driver_app/mainScreens/buildings.dart';
 import 'package:driver_app/mainScreens/notifications.dart';
-import 'package:driver_app/mainScreens/payment.dart';
+import 'package:driver_app/mainScreens/payments.dart';
 import 'package:driver_app/mainScreens/profile.dart';
+import 'package:driver_app/mainScreens/promotion_screen.dart';
+import 'package:driver_app/mainScreens/services_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +18,7 @@ class CustomDrawer extends StatelessWidget {
     await prefs.clear();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
+      MaterialPageRoute(builder: (context) => PhoneVerificationScreen()),
     );
   }
 
@@ -63,32 +63,44 @@ class CustomDrawer extends StatelessWidget {
               );
             },
           ),
+
           ListTile(
-            leading: const Icon(Icons.add_circle_outline, color: Colors.black),
+            leading: const Icon(Icons.credit_card, color: Colors.black),
             title: const Text(
-              "Add User",
+              "Payments",
               style: TextStyle(color: Colors.black),
             ),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => UserRegistrationScreen()),
+                MaterialPageRoute(builder: (context) => PaymentRecordsScreen()),
               );
             },
           ),
 
-
-
           ListTile(
-            leading: const Icon(Icons.task_alt_outlined, color: Colors.black),
+            leading: const Icon(Icons.sailing, color: Colors.black),
             title: const Text(
-              "Add Task",
+              "Promotions",
               style: TextStyle(color: Colors.black),
             ),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AppointmentsPage()),
+                MaterialPageRoute(builder: (context) => PromotionsScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.local_laundry_service, color: Colors.black),
+            title: const Text(
+              "Services",
+              style: TextStyle(color: Colors.black),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ServicesScreen()),
               );
             },
           ),

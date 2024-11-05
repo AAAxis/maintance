@@ -1,109 +1,153 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/authentication/phone_verification.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class ProfileScreen extends StatelessWidget {
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser; // Get the current user
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nicknameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _sharableLinkController = TextEditingController();
+
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userData = userDoc.data() as Map<String, dynamic>;
+
+      _nicknameController.text = userData['nickname'] ?? '';
+      _emailController.text = userData['email'] ?? '';
+      _phoneController.text = userData['phone'] ?? '';
+      _addressController.text = userData['address'] ?? '';
+      _sharableLinkController.text = userData['sharableLink'] ?? '';
+    }
+  }
+
+
+  Future<void> _updateProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'nickname': _nicknameController.text,
+        'email': _emailController.text,
+        'phone': _phoneController.text,
+        'address': _addressController.text,
+        'sharableLink': _sharableLinkController.text,
+        });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Profile updated successfully.")),
+      );
+    }
+  }
+
+  final String _url = "https://maintance-f744d.web.app/delete.html"; // Replace with your actual URL
+
+  void _openWebLink(BuildContext context) async {
+    if (await canLaunch(_url)) {
+      await launch(_url);
+    } else {
+      // Handle the error if the link can't be opened
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Could not launch $_url")),
+      );
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Profile"),
         backgroundColor: Colors.blue,
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
-            .collection('users') // Replace with your users collection
-            .doc(user?.uid) // Fetch user data using UID
-            .get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
 
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(child: Text("User data not found."));
-          }
-
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Name: ${userData['nickname'] ?? 'No Name'}", // Display nickname
-                  style: TextStyle(fontSize: 20),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Email: ${userData['email'] ?? 'No Email'}", // Display email
-                  style: TextStyle(fontSize: 20),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Phone: ${userData['phone'] ?? 'No Phone'}", // Display phone
-                  style: TextStyle(fontSize: 20),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Building: ${userData['address'] ?? 'No Address'}", // Display address
-                  style: TextStyle(fontSize: 20),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => _removeAccount(context, user),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+              TextFormField(
+                controller: _nicknameController,
+                decoration: InputDecoration(labelText: "Name"),
+              ),
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: "Email"),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(labelText: "Phone"),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _sharableLinkController,
+                decoration: InputDecoration(labelText: "Sharable Link"),
+              ),
+              SizedBox(height: 20),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            _updateProfile();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        ),
+                        child: Text("Save", style: TextStyle(color: Colors.white)),
+                      ),
+                      SizedBox(width: 10),
+           OutlinedButton(
+          onPressed: () => _openWebLink(context),
+    style: OutlinedButton.styleFrom(
+    side: BorderSide(color: Colors.red),
+    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+    ),
+    child: Text("Delete Account", style: TextStyle(color: Colors.red)),
+    ),
+                    ],
                   ),
-                  child: Text(
-                    "Remove Account",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
-  }
-
-  // Method to remove the user account
-  Future<void> _removeAccount(BuildContext context, User? user) async {
-    if (user != null) {
-      try {
-        // Delete user data from Firestore
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
-
-        // Delete user from Firebase Authentication
-        await user.delete();
-
-        // Show success message and navigate to the login screen or splash screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Account successfully removed.")),
-        );
-
-        // Optionally navigate to the login or splash screen
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-      } catch (e) {
-        // Handle errors (e.g., user not found, or user cannot be deleted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")),
-        );
-      }
-    }
   }
 }

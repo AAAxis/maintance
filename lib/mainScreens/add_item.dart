@@ -7,65 +7,61 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
-class AppointmentsPage extends StatefulWidget {
+class TaskerPage extends StatefulWidget {
   @override
-  _AppointmentsPageState createState() => _AppointmentsPageState();
+  _TaskerPageState createState() => _TaskerPageState();
 }
 
-class _AppointmentsPageState extends State<AppointmentsPage> {
-  List<DocumentSnapshot> orders = [];
+class _TaskerPageState extends State<TaskerPage> {
+  List<String> userList = [];
+  String? selectedUser;
+  String? userBuilding;
+  String? userEmail;
+  String? userNickname;
+  String? userPhone;
+
   final String uid = FirebaseAuth.instance.currentUser!.uid;
   DateTime selectedDate = DateTime.now();
   String? selectedHour = '08:00';
   TextEditingController descriptionController = TextEditingController();
   TextEditingController serviceController = TextEditingController(text: 'Repair');
-  TextEditingController addressController = TextEditingController();
   File? _selectedImage;
   String? _uploadedImageUrl;
   double _uploadProgress = 0.0;
-  String? userAddress;
 
   @override
   void initState() {
     super.initState();
-    _checkEmailVerification();
-    _fetchUserAddress();
+    _fetchUsers();
+    selectedDate = DateTime.now(); // Set today's date as default
+
   }
 
-  Future<void> _fetchUserAddress() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    if (userDoc.exists) {
+  Future<void> _fetchUsers() async {
+    QuerySnapshot usersSnapshot = await FirebaseFirestore.instance.collection('phone').get();
+    setState(() {
+      userList = usersSnapshot.docs.map((doc) => doc['nickname'] as String).toList();
+
+      if (userList.isNotEmpty) {
+        selectedUser = userList.first;
+        _fetchUserDetails(selectedUser!); // Fetch details for the first user
+      }
+    });
+  }
+
+  Future<void> _fetchUserDetails(String nickname) async {
+    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('phone')
+        .where('nickname', isEqualTo: nickname)
+        .get();
+
+    if (userSnapshot.docs.isNotEmpty) {
+      DocumentSnapshot userDoc = userSnapshot.docs.first;
       setState(() {
-        userAddress = userDoc['address'];
-        addressController.text = userAddress ?? '';
-      });
-    }
-  }
-
-  Future<void> _checkEmailVerification() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null && !user.emailVerified) {
-      Future.delayed(Duration.zero, () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Email is not verified.'),
-            duration: Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'Send Email',
-              onPressed: () {
-                user.sendEmailVerification().then((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Verification email sent!'), duration: Duration(seconds: 3)),
-                  );
-                }).catchError((error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error sending email: $error'), duration: Duration(seconds: 3)),
-                  );
-                });
-              },
-            ),
-          ),
-        );
+        userBuilding = userDoc['building'];
+        userEmail = userDoc['email'];
+        userNickname = userDoc['nickname'];
+        userPhone = userDoc['phone'];
       });
     }
   }
@@ -78,7 +74,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-       }
+    }
   }
 
   Future<String?> uploadImage() async {
@@ -98,15 +94,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       final imageUrl = await snapshot.ref.getDownloadURL();
       _uploadedImageUrl = imageUrl;
 
-      return imageUrl; // Return the URL
+      return imageUrl;
     }
-    return null; // Return null if no image was selected
+    return null;
   }
+
   Future<void> addAppointment() async {
-    // Call uploadImage and wait for the URL
     final imageUrl = await uploadImage();
 
-    if (descriptionController.text.isEmpty) {
+    if (descriptionController.text.isEmpty || selectedUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please fill all fields!'), duration: Duration(seconds: 3)),
       );
@@ -123,15 +119,17 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
 
     Timestamp appointmentTimestamp = Timestamp.fromDate(appointmentDateTime);
 
-    // Store the appointment with the uploaded image URL if available
-    await FirebaseFirestore.instance.collection('orders').add({
+    await FirebaseFirestore.instance.collection('tasks').add({
       'datetime': appointmentTimestamp,
-      'description': descriptionController.text,
+      'title': descriptionController.text,
       'type': serviceController.text,
-      'status': 'New',
-      'created': uid,
-      'address': addressController.text,
-      'imageUrl': imageUrl, // Add image URL to the order
+      'description': 'New',
+      'created': 'Admin',
+      'building': userBuilding,
+      'phone': userPhone,
+      'nickname': userNickname,
+      'email': userEmail,
+      'imageUrl': imageUrl ?? 'https://firebasestorage.googleapis.com/v0/b/maintance-f744d.appspot.com/o/b.jpg?alt=media&token=8efeaa80-ae3c-4ac9-a9ed-6b7fc9d58ec3', // Save fake link if imageUrl is null
     });
 
     clearFields();
@@ -144,190 +142,144 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       MaterialPageRoute(builder: (context) => NavigationScreen()),
     );
   }
+
   void clearFields() {
     descriptionController.clear();
     serviceController.text = 'Repair';
     selectedHour = '08:00';
     _selectedImage = null;
     _uploadedImageUrl = null;
+    userBuilding = null;
+    userEmail = null;
+    userNickname = null;
+    userPhone = null;
   }
 
-  Widget buildCalendar() {
-    int daysInMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
-    DateTime firstDayOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
-
-    List<Widget> dayWidgets = [];
-    for (int i = 0; i < firstDayOfMonth.weekday - 1; i++) {
-      dayWidgets.add(SizedBox());
-    }
-
-    for (int day = 1; day <= daysInMonth; day++) {
-      dayWidgets.add(
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedDate = DateTime(selectedDate.year, selectedDate.month, day);
-            });
-          },
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              color: selectedDate.day == day ? Colors.blue : null,
-            ),
-            child: Text('$day'),
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: Icon(Icons.chevron_left),
-              onPressed: () {
-                setState(() {
-                  selectedDate = DateTime(selectedDate.year, selectedDate.month - 1);
-                });
-              },
-            ),
-            Text(
-              DateFormat('MMMM yyyy').format(selectedDate),
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              icon: Icon(Icons.chevron_right),
-              onPressed: () {
-                setState(() {
-                  selectedDate = DateTime(selectedDate.year, selectedDate.month + 1);
-                });
-              },
-            ),
-          ],
-        ),
-        GridView.count(
-          crossAxisCount: 7,
-          children: dayWidgets,
-          shrinkWrap: true,
-        ),
-      ],
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate, // Preselect today's date
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
     );
-  }
 
+    if (pickedDate != null && pickedDate != selectedDate) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add Task'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.camera_alt),
-            onPressed: pickImage,
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          buildCalendar(),
-
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: descriptionController,
+      body: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: () => _selectDate(context),
+              child: AbsorbPointer(
+                child: TextFormField(
                   decoration: InputDecoration(
-                    labelText: 'Description',
-                    prefixIcon: Icon(Icons.description),
+                    labelText: 'Select Date',
+                    prefixIcon: Icon(Icons.calendar_today),
+                    hintText: DateFormat('yyyy-MM-dd').format(selectedDate),
                   ),
                 ),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Select Hour',
-                    prefixIcon: Icon(Icons.access_time),
-                  ),
-                  value: selectedHour,
-                  items: List.generate(13, (index) {
-                    int hour = 8 + index;
-                    String time = '${hour.toString().padLeft(2, '0')}:00';
-                    return DropdownMenuItem<String>(
-                      value: time,
-                      child: Text(time),
-                    );
-                  }),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedHour = value;
-                    });
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Select Service',
-                    prefixIcon: Icon(Icons.build),
-                  ),
-                  value: serviceController.text,
-                  items: ['Repair', 'Cleaning', 'Paint'].map((String service) {
-                    return DropdownMenuItem<String>(
-                      value: service,
-                      child: Text(service),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      serviceController.text = value!;
-                    });
-                  },
-                ),
-                TextField(
-                  controller: addressController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Building',
-                    prefixIcon: Icon(Icons.business_sharp),
-
-                  ),
-                ),
-
-
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (_selectedImage != null)
-                        SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        ),
-                        onPressed: addAppointment,
-                        icon: Icon(Icons.add),
-                        label: Text('Add Task'),
+              ),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description',
+                prefixIcon: Icon(Icons.description),
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(labelText: 'Select User', prefixIcon: Icon(Icons.person)),
+              value: selectedUser,
+              items: userList.map((String user) {
+                return DropdownMenuItem<String>(
+                  value: user,
+                  child: Text(user),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedUser = value;
+                  _fetchUserDetails(value!);
+                });
+              },
+            ),
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Select Hour',
+                prefixIcon: Icon(Icons.access_time),
+              ),
+              value: selectedHour,
+              items: List.generate(13, (index) {
+                int hour = 8 + index;
+                String time = '${hour.toString().padLeft(2, '0')}:00';
+                return DropdownMenuItem<String>(
+                  value: time,
+                  child: Text(time),
+                );
+              }),
+              onChanged: (value) {
+                setState(() {
+                  selectedHour = value;
+                });
+              },
+            ),
+            SizedBox(height: 10),
+            // Image upload icon
+            GestureDetector(
+              onTap: pickImage,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0), // Add padding around the text
+                    child: Text(
+                      'Image Upload', // Display "IMAGE UPLOAD" instead of an icon
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.blue, // Text color for better visibility
+                        fontWeight: FontWeight.bold, // Optional: makes the text bold
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
 
-              ],
+
+            if (_selectedImage != null) ...[
+              SizedBox(height: 10),
+              Image.file(_selectedImage!, height: 100, width: 100, fit: BoxFit.cover),
+              LinearProgressIndicator(value: _uploadProgress),
+            ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: ElevatedButton(
+          onPressed: addAppointment,
+          child: Text('Add Task', style: TextStyle(fontSize: 18)),
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size(double.infinity, 50),
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:driver_app/authentication/hello.dart';
+import 'package:driver_app/authentication/phone_verification.dart';
+import 'package:driver_app/mainScreens/dashboard.dart';
 import 'package:driver_app/mainScreens/navigation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -35,13 +36,17 @@ class _MySplashScreenState extends State<MySplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkCurrentUser();
+    _checkCurrentUser(context);
   }
 
-  void _checkCurrentUser() {
+  void _checkCurrentUser(BuildContext context) {
     Timer(Duration(seconds: 3), () async {
       // Check if the user is authenticated
       User? user = FirebaseAuth.instance.currentUser;
+
+      // Fetch phone number from local storage
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? storedPhone = prefs.getString('phone');
 
       if (user != null) {
         // User is authenticated, navigate to the main screen
@@ -49,18 +54,22 @@ class _MySplashScreenState extends State<MySplashScreen> {
           context,
           MaterialPageRoute(builder: (context) => NavigationScreen()),
         );
-      } else {
-        _requestPermissionManually();
-        // User is not authenticated, navigate to the login screen
+      } else if (storedPhone != null) {
+        // User is not authenticated but has phone stored, navigate to Limited screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (context) => HomeTenantScreen()),
+        );
+      } else {
+        // User is not authenticated and no phone stored, navigate to login screen
+        _requestPermissionManually();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PhoneVerificationScreen()),
         );
       }
     });
   }
-
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -76,21 +85,16 @@ class _MySplashScreenState extends State<MySplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(100.0),
+                  borderRadius: BorderRadius.circular(10), // Optional: Round image corners
                   child: SizedBox(
-                    width: 250,
-                    height: 250,
-                    child: Image.asset("images/Preview.png"),
+
+                    child: Image.asset(
+                      "images/background.jpeg",
+                      fit: BoxFit.cover, // Covers the entire box
+                    ),
                   ),
                 ),
-                const SizedBox(height: 30,),
-                Text(
-                  "Swipe to Continue >>",
-                  style: TextStyle(
-                    color: Colors.black, // Change the color to your preference
-                    fontSize: 16,
-                  ),
-                ),
+
               ],
             ),
           ),
